@@ -1,0 +1,131 @@
+import 'package:beauity_saloon/Helper/preferenceHelper.dart';
+import 'package:beauity_saloon/helper/NetworkManger.dart';
+import 'package:beauity_saloon/helper/api.dart';
+import 'package:beauity_saloon/model/CashRegisterGetAllModel.dart';
+import 'package:beauity_saloon/model/PosSettlement.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+
+class SettlementListController extends GetxController with StateMixin {
+  bool isFilter = false;
+  TextEditingController searchController = TextEditingController();
+  TextEditingController fromDateController = TextEditingController();
+  TextEditingController toDateController = TextEditingController();
+  TextEditingController cashRegController = TextEditingController();
+  TextEditingController tranNoController = TextEditingController();
+
+  String selectedDate = DateFormat('dd-MM-yyyy').format(DateTime.now().toLocal());
+  String? fromDate;
+  String? toDate;
+  late DateTime toFromDate;
+
+  RxList<CashRegisterGetAllModel> getCashRegisterList = <CashRegisterGetAllModel>[].obs;
+
+  RxList<PosSettlement> getPosSettlementList = <PosSettlement>[].obs;
+
+  RxBool isLoading = false.obs;
+
+  getCashRegister() async {
+    // isLoading.value = true;
+     try {
+      final apiResponse =
+      await NetworkManager.get(url: HttpUrl.getCashRegister, parameters: {
+        "OrganizationId": HttpUrl.org,
+      });
+      // isLoading.value = false;
+      if (apiResponse.apiResponseModel != null &&
+          apiResponse.apiResponseModel!.status) {
+        if (apiResponse.apiResponseModel!.data != null) {
+          List? resJson = apiResponse.apiResponseModel!.data!;
+          if (resJson != null) {
+            getCashRegisterList.value = resJson.map<CashRegisterGetAllModel>((value) {
+              return CashRegisterGetAllModel.fromJson(value);
+            }).toList();
+            print("getCashRegister.length from list");
+            print(getCashRegisterList.length);
+            print("getCashRegister.length from list");
+            return;
+          }
+          change(null, status: RxStatus.success());
+        } else {
+          change(null, status: RxStatus.error());
+          String? message = apiResponse.apiResponseModel?.message;
+          PreferenceHelper.showSnackBar(context: Get.context!, msg: message);
+        }
+      } else {
+        change(null, status: RxStatus.error());
+        String? message = apiResponse.apiResponseModel?.message;
+        PreferenceHelper.showSnackBar(context: Get.context!, msg: message);
+      }
+      change(null, status: RxStatus.success());
+    } catch (error) {
+      print(error.toString());
+      Get.showSnackbar(
+        GetSnackBar(
+          title: "Error",
+          message: error.toString(),
+          icon: const Icon(Icons.error),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  getPosSettlement({required cusCode, required fromDate, required toDate, required tranNo}) async {
+    getPosSettlementList.value.clear();
+    isLoading.value = true;
+
+    try {
+      final apiResponse =
+      await NetworkManager.get(url: HttpUrl.getPosSettlementHeaderSearch, parameters: {
+        "searchModel.organisationId": "${HttpUrl.org}",
+        "searchModel.customerCode": "$cusCode",
+        "searchModel.fromdate": "$fromDate",
+        "searchModel.todate": "$toDate",
+        "searchModel.tranNo": "$tranNo",
+      });
+      isLoading.value = false;
+      change(null, status: RxStatus.success());
+      if (apiResponse.apiResponseModel != null &&
+          apiResponse.apiResponseModel!.status) {
+        if (apiResponse.apiResponseModel!.data != null) {
+          List? resJson = apiResponse.apiResponseModel!.data!;
+          if (resJson != null) {
+            getPosSettlementList.value = resJson.map<PosSettlement>((value) {
+              return PosSettlement.fromJson(value);
+            }).toList();
+            print("getPosSettlementList.length from list");
+            print(getPosSettlementList.length);
+            print("getPosSettlementList.length from list");
+
+          }
+          change(null, status: RxStatus.success());
+        } else {
+          change(null, status: RxStatus.error());
+          String? message = apiResponse.apiResponseModel?.message;
+          PreferenceHelper.showSnackBar(context: Get.context!, msg: message);
+        }
+      } else {
+        change(null, status: RxStatus.success());
+        getPosSettlementList.value.isEmpty;
+      }
+
+    } catch (error) {
+      print(error.toString());
+      Get.showSnackbar(
+        GetSnackBar(
+          title: "Error",
+          message: error.toString(),
+          icon: const Icon(Icons.error),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+
+
+
+}
